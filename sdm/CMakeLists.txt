@@ -1,0 +1,5 @@
+include_directories(include)
+AUX_SOURCE_DIRECTORY(include SDM_SRCS)
+add_executable(sdm test_model.cpp ${SDM_SRCS})
+#add_executable(sdm_train train_model.cpp ${SDM_SRCS})
+target_link_libraries(sdm ${OpenCV_LIBS})

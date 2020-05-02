@@ -1,0 +1,3 @@
+AUX_SOURCE_DIRECTORY(. SRC_LIST)
+add_executable(MRCVGL ${SRC_LIST})
+target_link_libraries(MRCVGL ${OpenCV_LIBS} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY})

@@ -1,0 +1,7 @@
+build
+*.bin
+sdm/example/
+OpenWear/x64/
+MRCVGL/x64/
+sdm/x64/
+x64/
