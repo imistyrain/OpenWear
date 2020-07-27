@@ -1,3 +1,4 @@
+#define GL_SILENCE_DEPRECATION
 #include "mrgl.h"
 #include "mropencv.h"
 #include "Glasses.h"
@@ -10,18 +11,24 @@ CGlasses m_glasses;
 ldmarkmodel modelt;
 std::string modelFilePath = modeldir+"roboman-landmark-model.bin";
 cv::Mat current_shape;
-GLuint textureID;
+int frame_width = 640;
+int frame_height = 480;
 
 float smoothingeyecenterx = 0;
 float smoothingeyecentery = 0;
 float smoothingscale = 1.1;
 float learningrate = 0.2;
 const char* strlogo = "OpenWear 1.0";
+const float dist = 1;
 
 void initOpenGL(void){
+	capture >> img;
+	if (!img.data)
+		return;
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(640, 480);
-	glutInitWindowPosition(300, 200);
+	frame_width = img.cols;
+	frame_height = img.rows;
+	glutInitWindowSize(img.cols, img.rows);
 	glutCreateWindow(strlogo);
 	glEnable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
@@ -36,6 +43,7 @@ void initOpenGL(void){
 		std::cout << "Failed to load sdm model" << std::endl;
 		exit(-1);
 	}
+	GLuint textureID;
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -48,10 +56,12 @@ void drawVideo(const cv::Mat &img){
 	flip(img, img, 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.cols, img.rows, 0, GL_BGR, GL_UNSIGNED_BYTE, img.data);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-3.2, -2.4, 0.0);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-3.2, 2.4, 0.0);
-	glTexCoord2f(1.0, 1.0); glVertex3f(3.2, 2.4, 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(3.2, -2.4, 0.0);
+	float marginX = img.cols * 1.0 / (img.cols + img.rows);
+    float marginY = img.rows * 1.0 / (img.cols + img.rows);
+	glTexCoord2f(0.0, 0.0); glVertex3f(-marginX*dist, -marginY*dist, dist);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-marginX*dist, marginY*dist, dist);
+	glTexCoord2f(1.0, 1.0); glVertex3f(marginX*dist, marginY*dist, dist);
+	glTexCoord2f(1.0, 0.0); glVertex3f(marginX*dist, -marginY*dist, dist);
 	glEnd();
 }
 
@@ -60,8 +70,9 @@ void display(void){
 	capture >> img;
 	if (!img.data)
 		return;
+	//std::cout<<"\r"<<img.cols<<" "<<img.rows<<std::flush;
 	glLoadIdentity();
-	glTranslatef(0.0, 0.0, -4);
+	glTranslatef(0.0, 0.0, -2*dist);
 	glPushMatrix();
 	modelt.track(img, current_shape);
 	if (current_shape.cols == 136)
@@ -79,13 +90,16 @@ void display(void){
 		smoothingeyecenterx = smoothingeyecenterx*(1 - learningrate) + learningrate*eyecenterx;
 		smoothingeyecentery = smoothingeyecentery*(1 - learningrate) + learningrate*eyecentery;
 		float distance = cv::norm(lefteye-righteye);
-		float scale = 0.008*distance + 0.24;
+		float scale = 0.002*distance + 0.1;
 		smoothingscale = learningrate*scale + (1 - learningrate)*smoothingscale;
-		glTranslatef((smoothingeyecenterx - 320) / 320 * 2, (240 - smoothingeyecentery) / 240 * 2, 0);
-		glRotatef(0.5*eav[0], 1, 0,0);
+		float x = (smoothingeyecenterx / frame_width - 0.5)*dist;
+		float y = (0.5 - smoothingeyecentery / frame_height)*dist;
+		std::cout<<"\r"<<x<<","<<y<<std::flush;
+		glTranslatef(x, y, 0.2);
+		glRotatef(0.5*eav[0], 1, 0, 0);
  		glRotatef(-0.5*eav[1], 0, 1, 0);
  		glRotatef(-0.5*eav[2], 0, 0, 1);
-		glScalef(smoothingscale, smoothingscale, smoothingscale);		
+		glScalef(smoothingscale, smoothingscale, 1);
 	}
 	m_glasses.Draw();
 	glPopMatrix();
@@ -100,7 +114,7 @@ void reshape(int w, int h){
 	glViewport(0, 0, w, h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(60.0f, w * 1.0 / h, 1.0, 30.0);
+	gluPerspective(45.0f, w * 1.0 / h, 0.1, dist*5);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }

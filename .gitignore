@@ -1,5 +1,6 @@
 build
 *.bin
+*.obj
 sdm/example/
 OpenWear/x64/
 MRCVGL/x64/
