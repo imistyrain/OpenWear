@@ -1,4 +1,3 @@
-#pragma once
 #include "ldmarkmodel.h"
 
 LinearRegressor::LinearRegressor() : weights(),meanvalue(),x(),isPCA(false)
